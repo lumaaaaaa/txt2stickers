@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/mattn/go-sixel"
@@ -49,12 +50,12 @@ func generateImg(prompt string) {
 	if err != nil {
 		panic(err)
 	}
-	bytes, err := io.ReadAll(resp.Body)
+	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
 
-	respString := string(bytes)
+	respString := string(respBytes)
 
 	var response Response
 	err = json.Unmarshal([]byte(strings.ReplaceAll(respString, "1$xfb_pair_generate_text2stickers(bypass_cache:$bypass_cache,caller:$caller,media_type:$media_type,prompt:$prompt,scaling_factor:$scaling_factor)", "xfb_pair_generate_text2stickers")), &response)
@@ -78,9 +79,6 @@ func generateImg(prompt string) {
 			panic(err)
 		}
 
-		// decode the png response
-		img, err := png.Decode(imgResponse.Body)
-
 		// read the data to add the byte array to the image data slice
 		imgBytes, err := io.ReadAll(imgResponse.Body)
 		if err != nil {
@@ -93,6 +91,9 @@ func generateImg(prompt string) {
 				imgBytes,
 				"123456" + strings.Split(strings.Split(sticker.URL, "123456")[1], "?")[0],
 			})
+
+		// decode the png response
+		img, err := png.Decode(bytes.NewReader(imgBytes))
 
 		// print sixel to terminal
 		err = sixel.NewEncoder(os.Stdout).Encode(img)
